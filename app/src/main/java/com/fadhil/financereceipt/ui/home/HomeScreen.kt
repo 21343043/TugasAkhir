@@ -29,7 +29,7 @@ private val ReceiptMuted = Color(0xFF7E91B3)
 
 /** Tahap tampilan: ringkasan transaksi kosong dan plan contoh, belum memakai Room. */
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onAddTransaction: () -> Unit = {}) {
     var monthOffset by rememberSaveable { mutableIntStateOf(0) }
     var selectedPeriod by rememberSaveable { mutableStateOf("Harian") }
     var message by rememberSaveable { mutableStateOf<String?>(null) }
@@ -139,7 +139,7 @@ fun HomeScreen() {
             }
         }
         FloatingActionButton(
-            onClick = { message = "Form tambah transaksi akan kita buat pada tahap berikutnya." },
+            onClick = onAddTransaction,
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
             containerColor = ReceiptRed, contentColor = Color.White,
             shape = RoundedCornerShape(50)

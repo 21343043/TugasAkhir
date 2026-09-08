@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.fadhil.financereceipt.ui.history.HistoryScreen
 import com.fadhil.financereceipt.ui.home.HomeScreen
 import com.fadhil.financereceipt.ui.plan.PlanScreen
+import com.fadhil.financereceipt.ui.transaction.AddTransactionScreen
 
 @Composable
 fun FinanceNavHost() {
@@ -28,30 +29,32 @@ fun FinanceNavHost() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar {
-                bottomNavigationItems.forEach { item ->
-                    NavigationBarItem(
-                        selected = currentRoute == item.destination.route,
-                        onClick = {
-                            navController.navigate(item.destination.route) {
-                                popUpTo(
-                                    navController.graph
-                                        .findStartDestination().id
-                                ) {
-                                    saveState = true
-                                }
+            if (currentRoute != AppDestination.ADD_TRANSACTION.route) {
+                NavigationBar {
+                    bottomNavigationItems.forEach { item ->
+                        NavigationBarItem(
+                            selected = currentRoute == item.destination.route,
+                            onClick = {
+                                navController.navigate(item.destination.route) {
+                                    popUpTo(
+                                        navController.graph
+                                            .findStartDestination().id
+                                    ) {
+                                        saveState = true
+                                    }
 
-                                launchSingleTop = true
-                                restoreState = true
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Text(text = item.emoji)
+                            },
+                            label = {
+                                Text(text = item.label)
                             }
-                        },
-                        icon = {
-                            Text(text = item.emoji)
-                        },
-                        label = {
-                            Text(text = item.label)
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -64,11 +67,17 @@ fun FinanceNavHost() {
                 .padding(innerPadding)
         ) {
             composable(AppDestination.HOME.route) {
-                HomeScreen()
+                HomeScreen(onAddTransaction = {
+                    navController.navigate(AppDestination.ADD_TRANSACTION.route) { launchSingleTop = true }
+                })
             }
 
             composable(AppDestination.HISTORY.route) {
                 HistoryScreen()
+            }
+
+            composable(AppDestination.ADD_TRANSACTION.route) {
+                AddTransactionScreen(onBack = { navController.popBackStack() })
             }
 
             composable(AppDestination.PLAN.route) {
