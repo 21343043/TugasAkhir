@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
+import com.fadhil.financereceipt.data.local.entity.TransactionWithCategory
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -29,4 +30,13 @@ interface TransactionDao {
         """
     )
     suspend fun getById(id: Long): TransactionEntity?
+    @Query(
+        """
+        SELECT t.*, c.category_name AS categoryName, c.emoji AS categoryEmoji
+        FROM transactions AS t
+        INNER JOIN categories AS c ON c.category_id = t.category_id
+        ORDER BY t.transaction_date DESC, t.transaction_id DESC
+        """
+    )
+    fun observeWithCategory(): Flow<List<TransactionWithCategory>>
 }

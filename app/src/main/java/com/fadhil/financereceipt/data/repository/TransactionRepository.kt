@@ -1,12 +1,17 @@
 package com.fadhil.financereceipt.data.repository
 
 import androidx.room.withTransaction
+import com.fadhil.financereceipt.data.local.entity.TransactionWithCategory
+import kotlinx.coroutines.flow.Flow
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
 
 class TransactionRepository(
     private val database: FinanceDatabase
 ) {
+    fun observeHistory(): Flow<List<TransactionWithCategory>> =
+        database.transactionDao().observeWithCategory()
+
     suspend fun saveManualTransaction(
         categoryId: Long,
         transactionType: String,

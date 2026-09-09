@@ -18,8 +18,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Calendar
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fadhil.financereceipt.ui.history.TransactionItem
+import java.math.BigInteger
+import java.text.NumberFormat
 import java.util.Locale
 
 private val ReceiptRed = Color(0xFFEF0012)
@@ -27,14 +30,42 @@ private val ReceiptBackground = Color(0xFFF7F9FB)
 private val ReceiptInk = Color(0xFF172B46)
 private val ReceiptMuted = Color(0xFF7E91B3)
 
-/** Tahap tampilan: ringkasan transaksi kosong dan plan contoh, belum memakai Room. */
 @Composable
-fun HomeScreen(onAddTransaction: () -> Unit = {}) {
-    var monthOffset by rememberSaveable { mutableIntStateOf(0) }
+fun HomeScreen(
+    onAddTransaction: () -> Unit = {},
+    homeViewModel: HomeViewModel = viewModel()
+) {
+    val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+    HomeContent(state, onAddTransaction, homeViewModel::loadHome)
+}
+
+@Composable
+private fun HomeContent(
+    state: HomeUiState,
+    onAddTransaction: () -> Unit = {},
+    onRetry: () -> Unit = {}
+) {
+    var anchorMillis by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var selectedPeriod by rememberSaveable { mutableStateOf("Harian") }
     var message by rememberSaveable { mutableStateOf<String?>(null) }
-    val month = Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset) }
-    val monthLabel = SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("id-ID")).format(month.time)
+    // Dihitung ulang agar perubahan zona waktu ikut tercermin saat layar dibuat ulang.
+    val period = homePeriod(anchorMillis, selectedPeriod)
+    val rows = remember(state.transactions, period.start, period.endExclusive) {
+        state.transactions.filter {
+            it.transaction.transactionDate >= period.start &&
+                    it.transaction.transactionDate < period.endExclusive
+        }
+    }
+    // BigInteger menjaga penjumlahan beberapa nominal Long agar tidak overflow.
+    val income = remember(rows) {
+        rows.filter { it.transaction.transactionType == "income" }
+            .fold(BigInteger.ZERO) { total, row -> total + BigInteger.valueOf(row.transaction.amount) }
+    }
+    val expense = remember(rows) {
+        rows.filter { it.transaction.transactionType == "expense" }
+            .fold(BigInteger.ZERO) { total, row -> total + BigInteger.valueOf(row.transaction.amount) }
+    }
+    val summaryAvailable = !state.isLoading && state.errorMessage == null
 
     Box(Modifier.fillMaxSize().background(ReceiptBackground)) {
         Column(
@@ -50,16 +81,16 @@ fun HomeScreen(onAddTransaction: () -> Unit = {}) {
                     HeaderButton("☰", "Menu") { message = "Menu tambahan belum tersedia pada tahap ini." }
                     Spacer(Modifier.weight(1f))
                     HeaderButton("↓", "Ekspor") { message = "Ekspor belum tersedia pada tahap ini." }
-                    HeaderButton("≡", "Filter") { message = "Filter transaksi akan ditambahkan setelah data transaksi tersedia." }
+                    HeaderButton("≡", "Filter") { message = "Gunakan tab periode dan tombol panah untuk memilih rentang tanggal. Filter jenis transaksi tersedia di Riwayat." }
                 }
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HeaderButton("‹", "Bulan sebelumnya") { monthOffset-- }
-                    Text(monthLabel, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    HeaderButton("›", "Bulan berikutnya") { monthOffset++ }
+                    HeaderButton("‹", "Periode sebelumnya") { anchorMillis = shiftHomePeriod(anchorMillis, selectedPeriod, -1) }
+                    Text(period.label, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    HeaderButton("›", "Periode berikutnya") { anchorMillis = shiftHomePeriod(anchorMillis, selectedPeriod, 1) }
                 }
             }
 
@@ -86,57 +117,70 @@ fun HomeScreen(onAddTransaction: () -> Unit = {}) {
                 }
             }
 
+            TextButton(
+                onClick = { anchorMillis = System.currentTimeMillis() },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) { Text("Kembali ke periode saat ini", color = ReceiptRed) }
+
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 shape = RoundedCornerShape(22.dp), color = Color.White, shadowElevation = 2.dp
             ) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    SummaryValue("PEMASUKAN", Color(0xFF009F76), Modifier.weight(1f))
+                    SummaryValue("PEMASUKAN", if (summaryAvailable) rupiah(income) else "—", Color(0xFF009F76), Modifier.weight(1f))
                     Box(Modifier.width(1.dp).height(32.dp).background(ReceiptBackground))
-                    SummaryValue("PENGELUARAN", ReceiptRed, Modifier.weight(1f))
+                    SummaryValue("PENGELUARAN", if (summaryAvailable) rupiah(expense) else "—", ReceiptRed, Modifier.weight(1f))
                     Box(Modifier.width(1.dp).height(32.dp).background(ReceiptBackground))
-                    SummaryValue("SALDO", ReceiptInk, Modifier.weight(1f))
+                    SummaryValue("SALDO PERIODE", if (summaryAvailable) rupiah(income - expense) else "—", ReceiptInk, Modifier.weight(1f))
                 }
             }
 
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Surface(shape = RoundedCornerShape(50), color = Color(0xFFEEF3F8)) {
-                    Box(Modifier.size(90.dp), contentAlignment = Alignment.Center) {
-                        Text("▤", fontSize = 48.sp, color = Color(0xFFCCD8E7))
+                when {
+                    state.isLoading -> {
+                        CircularProgressIndicator(color = ReceiptRed,
+                            modifier = Modifier.align(Alignment.CenterHorizontally))
+                        Text("Memuat transaksi...", color = ReceiptMuted)
+                    }
+                    state.errorMessage != null -> {
+                        Text(state.errorMessage.orEmpty(), color = ReceiptRed)
+                        TextButton(onClick = onRetry) { Text("Coba lagi") }
+                    }
+                    rows.isEmpty() -> {
+                        Text("Belum ada transaksi pada periode ini", color = ReceiptInk,
+                            fontWeight = FontWeight.Bold)
+                        Text("Pilih periode lain atau tambahkan transaksi melalui tombol +.",
+                            color = ReceiptMuted)
+                    }
+                    else -> {
+                        Text("Transaksi terbaru", color = ReceiptInk,
+                            fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("${rows.size} transaksi dalam periode ini", color = ReceiptMuted, fontSize = 12.sp)
+                        rows.take(5).forEach { item ->
+                            key(item.transaction.transactionId) { TransactionItem(item) }
+                        }
+                        if (rows.size > 5) {
+                            Text("Menampilkan 5 transaksi terbaru. Daftar lengkap tersedia di menu Riwayat.",
+                                color = ReceiptMuted, fontSize = 12.sp)
+                        }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                Text("Data tidak tersedia", color = ReceiptInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Spacer(Modifier.height(6.dp))
-                Text("Mulai catat pengeluaran dan pemasukan Anda", color = ReceiptMuted, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(6.dp))
-                Text("$selectedPeriod • $monthLabel", color = ReceiptMuted, fontSize = 12.sp)
-            }
-
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 1.dp
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("Plan Keuangan", color = ReceiptInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    Text("Contoh tampilan, bukan data transaksi", color = ReceiptMuted, fontSize = 12.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Text("🍔 Anggaran Makanan", color = ReceiptInk, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.height(8.dp))
-                    Text("Rp750.000 dari Rp1.000.000", color = ReceiptInk, fontSize = 13.sp)
-                    Spacer(Modifier.height(10.dp))
-                    LinearProgressIndicator(
-                        progress = { 0.75f }, modifier = Modifier.fillMaxWidth().height(6.dp),
-                        color = Color(0xFFD18A00), trackColor = Color(0xFFFFF1D2)
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text("75% · 😐 Mendekati batas", color = Color(0xFF906000), fontSize = 13.sp)
-                    Text("Sisa anggaran Rp250.000", color = ReceiptMuted, fontSize = 12.sp)
+                Text("Saldo periode = pemasukan − pengeluaran pada rentang tanggal terpilih.",
+                    color = ReceiptMuted, fontSize = 12.sp)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 1.dp
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Plan Keuangan", color = ReceiptInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("Fitur pengaturan anggaran belum tersedia.", color = ReceiptMuted, fontSize = 13.sp)
+                    }
                 }
             }
+
         }
         FloatingActionButton(
             onClick = onAddTransaction,
@@ -157,11 +201,11 @@ fun HomeScreen(onAddTransaction: () -> Unit = {}) {
 }
 
 @Composable
-private fun SummaryValue(label: String, amountColor: Color, modifier: Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+private fun SummaryValue(label: String, amount: String, amountColor: Color, modifier: Modifier) {
+    Column(modifier.padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, color = ReceiptMuted, fontSize = 9.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(4.dp))
-        Text("Rp 0", color = amountColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(amount, color = amountColor, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center)
     }
 }
 
@@ -176,5 +220,8 @@ private fun HeaderButton(symbol: String, label: String, onClick: () -> Unit) {
 @Preview(showBackground = true, widthDp = 360, heightDp = 740)
 @Composable
 private fun HomeScreenPreview() {
-    MaterialTheme { HomeScreen() }
+    MaterialTheme { HomeContent(HomeUiState(isLoading = false)) }
 }
+
+private fun rupiah(amount: BigInteger): String =
+    "Rp" + NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID")).format(amount)
