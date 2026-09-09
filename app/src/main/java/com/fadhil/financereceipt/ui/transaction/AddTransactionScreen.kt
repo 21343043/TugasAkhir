@@ -1,6 +1,7 @@
 package com.fadhil.financereceipt.ui.transaction
 
 import android.app.DatePickerDialog
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +46,12 @@ fun AddTransactionScreen(
     var message by rememberSaveable { mutableStateOf<String?>(null) }
     val categoryState by
     transactionViewModel.categoryState.collectAsStateWithLifecycle()
+    val saveState by
+    transactionViewModel.saveState.collectAsStateWithLifecycle()
+
+    BackHandler(enabled = saveState.isSaving) {
+        // Tunggu penyimpanan selesai sebelum meninggalkan form.
+    }
 
     val transactionType = if (income) "income" else "expense"
 
@@ -60,7 +67,12 @@ fun AddTransactionScreen(
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF7F9FB)).imePadding().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().background(FormRed).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("‹ Kembali", color = Color.White) }
+            TextButton(
+                onClick = onBack,
+                enabled = !saveState.isSaving
+            ) {
+                Text("‹ Kembali", color = Color.White)
+            }
             Text("Buat Transaksi", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
         Surface(
@@ -191,20 +203,40 @@ fun AddTransactionScreen(
                 Button(
                     onClick = {
                         submitted = true
+
                         if (
                             !categoryState.isLoading &&
                             categoryState.errorMessage == null &&
                             selectedCategory != null &&
                             validAmount
                         ) {
-                            message = "Isian sudah valid. Transaksi belum disimpan karena penyimpanan belum tersedia."
+                            transactionViewModel.saveTransaction(
+                                categoryId = selectedCategoryId,
+                                transactionType = transactionType,
+                                amountText = amount,
+                                transactionDate = dateMillis,
+                                note = note
+                            )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = FormRed, contentColor = Color.White),
+                    enabled = !saveState.isSaving &&
+                            saveState.savedTransactionId == null &&
+                            !categoryState.isLoading &&
+                            categoryState.errorMessage == null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FormRed,
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(14.dp)
-                ) { Text("SIMPAN", fontWeight = FontWeight.Bold) }
-                Text("Pratinjau form. Data belum tersimpan.", color = Color(0xFF667A96), fontSize = 12.sp)
+                ) {
+                    Text(
+                        text = if (saveState.isSaving) "MENYIMPAN..." else "SIMPAN",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -234,6 +266,37 @@ fun AddTransactionScreen(
             confirmButton = {
                 TextButton(onClick = { categoryOpen = false }) {
                     Text("Batal")
+                }
+            }
+        )
+    }
+    if (saveState.savedTransactionId != null) {
+        AlertDialog(
+            onDismissRequest = onBack,
+            title = { Text("Berhasil") },
+            text = { Text("Transaksi berhasil disimpan.") },
+            confirmButton = {
+                TextButton(onClick = onBack) {
+                    Text("Selesai")
+                }
+            }
+        )
+    }
+
+    saveState.errorMessage?.let { error ->
+        AlertDialog(
+            onDismissRequest = {
+                transactionViewModel.clearSaveError()
+            },
+            title = { Text("Gagal menyimpan") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        transactionViewModel.clearSaveError()
+                    }
+                ) {
+                    Text("Mengerti")
                 }
             }
         )
