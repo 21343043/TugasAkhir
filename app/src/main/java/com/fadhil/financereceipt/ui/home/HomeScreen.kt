@@ -33,17 +33,19 @@ private val ReceiptMuted = Color(0xFF7E91B3)
 @Composable
 fun HomeScreen(
     onAddTransaction: () -> Unit = {},
+    onOpenPlan: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val state by homeViewModel.uiState.collectAsStateWithLifecycle()
-    HomeContent(state, onAddTransaction, homeViewModel::loadHome)
+    HomeContent(state, onAddTransaction, homeViewModel::loadHome, onOpenPlan)
 }
 
 @Composable
 private fun HomeContent(
     state: HomeUiState,
     onAddTransaction: () -> Unit = {},
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    onOpenPlan: () -> Unit = {}
 ) {
     var anchorMillis by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var selectedPeriod by rememberSaveable { mutableStateOf("Harian") }
@@ -170,15 +172,7 @@ private fun HomeContent(
                 }
                 Text("Saldo periode = pemasukan − pengeluaran pada rentang tanggal terpilih.",
                     color = ReceiptMuted, fontSize = 12.sp)
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp), color = Color.White, shadowElevation = 1.dp
-                ) {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Plan Keuangan", color = ReceiptInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("Buka menu Plan untuk mengatur dan melihat anggaran bulanan.", color = ReceiptMuted, fontSize = 13.sp)
-                    }
-                }
+                HomePlanSummary(onOpenPlan = onOpenPlan)
             }
 
         }

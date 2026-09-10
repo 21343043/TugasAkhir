@@ -32,7 +32,11 @@ private val PlanInk = Color(0xFF172B46)
 private val PlanMuted = Color(0xFF667A96)
 
 @Composable
-fun PlanScreen(planViewModel: PlanViewModel = viewModel()) {
+fun PlanScreen(
+    planViewModel: PlanViewModel = viewModel(),
+    openCurrentMonth: Boolean = false,
+    onCurrentMonthOpened: () -> Unit = {}
+) {
     val initial = remember { Calendar.getInstance() }
     var year by rememberSaveable { mutableIntStateOf(initial.get(Calendar.YEAR)) }
     var month by rememberSaveable { mutableIntStateOf(initial.get(Calendar.MONTH) + 1) }
@@ -53,6 +57,16 @@ fun PlanScreen(planViewModel: PlanViewModel = viewModel()) {
     val monthLabel = remember(year, month) {
         val calendar = Calendar.getInstance().apply { clear(); set(year, month - 1, 1) }
         SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("id-ID")).format(calendar.time)
+    }
+
+    // Konsumsi permintaan sekali; navigasi tab biasa tetap mempertahankan bulan pilihan.
+    LaunchedEffect(openCurrentMonth, busy) {
+        if (openCurrentMonth && !busy) {
+            val today = Calendar.getInstance()
+            year = today.get(Calendar.YEAR)
+            month = today.get(Calendar.MONTH) + 1
+            onCurrentMonthOpened()
+        }
     }
 
     LaunchedEffect(year, month) { planViewModel.loadMonth(year, month) }
