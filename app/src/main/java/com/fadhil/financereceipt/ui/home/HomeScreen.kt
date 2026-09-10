@@ -176,7 +176,7 @@ private fun HomeContent(
                 ) {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Plan Keuangan", color = ReceiptInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("Fitur pengaturan anggaran belum tersedia.", color = ReceiptMuted, fontSize = 13.sp)
+                        Text("Buka menu Plan untuk mengatur dan melihat anggaran bulanan.", color = ReceiptMuted, fontSize = 13.sp)
                     }
                 }
             }
