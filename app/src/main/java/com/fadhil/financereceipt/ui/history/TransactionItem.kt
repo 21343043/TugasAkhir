@@ -2,6 +2,7 @@ package com.fadhil.financereceipt.ui.history
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +19,12 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TransactionItem(item: TransactionWithCategory) {
+fun TransactionItem(
+    item: TransactionWithCategory,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    actionsEnabled: Boolean = true
+) {
     val transaction = item.transaction
     val isIncome = transaction.transactionType == "income"
     val amountText = remember(transaction.amount) {
@@ -52,6 +58,18 @@ fun TransactionItem(item: TransactionWithCategory) {
             )
             if (transaction.note.isNotBlank()) {
                 Text(transaction.note, color = Color(0xFF172B46), fontSize = 14.sp)
+            }
+            if (onEdit != null || onDelete != null) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    onEdit?.let { action ->
+                        TextButton(onClick = action, enabled = actionsEnabled) { Text("Edit") }
+                    }
+                    onDelete?.let { action ->
+                        TextButton(onClick = action, enabled = actionsEnabled) {
+                            Text("Hapus", color = if (actionsEnabled) Color(0xFFEF0012) else Color.Gray)
+                        }
+                    }
+                }
             }
         }
     }

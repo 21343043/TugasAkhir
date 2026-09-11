@@ -3,6 +3,7 @@ package com.fadhil.financereceipt.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.Update
 import androidx.room.Query
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
 import com.fadhil.financereceipt.data.local.entity.TransactionWithCategory
@@ -10,6 +11,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    suspend fun update(transaction: TransactionEntity): Int
+
+    @Query("DELETE FROM transactions WHERE transaction_id = :id")
+    suspend fun deleteById(id: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(transaction: TransactionEntity): Long

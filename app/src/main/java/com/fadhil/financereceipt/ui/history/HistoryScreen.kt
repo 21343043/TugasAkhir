@@ -16,12 +16,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
     val state by historyViewModel.uiState.collectAsStateWithLifecycle()
+    val manageState by historyViewModel.manageState.collectAsStateWithLifecycle()
+    var editTransactionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteTransactionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deleteSummary by rememberSaveable { mutableStateOf("") }
+    var successMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val busy = manageState.isWorking || manageState.completedMessage != null
+    val actionsEnabled = !busy && editTransactionId == null &&
+            deleteTransactionId == null && successMessage == null
+
+    LaunchedEffect(manageState.completedMessage) {
+        manageState.completedMessage?.let {
+            editTransactionId = null
+            deleteTransactionId = null
+            successMessage = it
+            historyViewModel.resetManageState()
+        }
+    }
     var selectedType by rememberSaveable { mutableStateOf("all") }
     val listState = rememberLazyListState()
     val visibleTransactions = remember(state.transactions, selectedType) {
@@ -97,10 +118,98 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(visibleTransactions, key = { it.transaction.transactionId }) {
-                        TransactionItem(it)
+                        TransactionItem(
+                            item = it,
+                            actionsEnabled = actionsEnabled,
+                            onEdit = {
+                                historyViewModel.resetManageState()
+                                editTransactionId = it.transaction.transactionId
+                            },
+                            onDelete = {
+                                historyViewModel.resetManageState()
+                                deleteTransactionId = it.transaction.transactionId
+                                val locale = Locale.forLanguageTag("id-ID")
+                                val date = SimpleDateFormat("dd MMMM yyyy", locale)
+                                    .format(it.transaction.transactionDate)
+                                val amount = NumberFormat.getIntegerInstance(locale)
+                                    .format(it.transaction.amount)
+                                val type = if (it.transaction.transactionType == "income")
+                                    "Pemasukan" else "Pengeluaran"
+                                deleteSummary = "$type • ${it.categoryEmoji} ${it.categoryName}\n$date\nRp$amount"
+                            }
+                        )
                     }
                 }
             }
         }
     }
+
+    val editing = state.transactions.firstOrNull { it.transaction.transactionId == editTransactionId }
+    if (editTransactionId != null && editing != null) {
+        TransactionEditDialog(
+            transaction = editing.transaction,
+            categories = state.categories,
+            manageState = manageState,
+            onDismiss = {
+                editTransactionId = null
+                historyViewModel.resetManageState()
+            },
+            onSave = { categoryId, type, amount, date, note ->
+                historyViewModel.updateTransaction(
+                    editing.transaction.transactionId, categoryId, type, amount, date, note
+                )
+            }
+        )
+    } else if (editTransactionId != null && !state.isLoading && !busy) {
+        AlertDialog(
+            onDismissRequest = { editTransactionId = null },
+            title = { Text("Transaksi tidak tersedia") },
+            text = { Text("Tutup form lalu coba muat ulang riwayat.") },
+            confirmButton = { TextButton(onClick = {
+                editTransactionId = null
+                historyViewModel.resetManageState()
+            }) { Text("Tutup") } }
+        )
+    }
+
+    deleteTransactionId?.let { id ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!busy) {
+                    deleteTransactionId = null
+                    historyViewModel.resetManageState()
+                }
+            },
+            properties = DialogProperties(dismissOnBackPress = !busy, dismissOnClickOutside = !busy),
+            title = { Text("Hapus transaksi?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(deleteSummary, fontWeight = FontWeight.SemiBold)
+                    Text("Transaksi ini akan dihapus permanen. Saldo dan penggunaan anggaran akan dihitung ulang.")
+                    manageState.errorMessage?.let { Text(it, color = Color(0xFFEF0012)) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { historyViewModel.deleteTransaction(id) }, enabled = !busy) {
+                    Text(if (manageState.isWorking) "Menghapus..." else "Hapus", color = Color(0xFFEF0012))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    deleteTransactionId = null
+                    historyViewModel.resetManageState()
+                }, enabled = !busy) { Text("Batal") }
+            }
+        )
+    }
+
+    successMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { successMessage = null },
+            title = { Text("Berhasil") },
+            text = { Text(message) },
+            confirmButton = { TextButton(onClick = { successMessage = null }) { Text("Selesai") } }
+        )
+    }
+
 }
