@@ -31,6 +31,7 @@ private val FormInk = Color(0xFF172B46)
 @Composable
 fun AddTransactionScreen(
     onBack: () -> Unit,
+    onScanReceipt: () -> Unit,
     transactionViewModel: TransactionViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -43,7 +44,6 @@ fun AddTransactionScreen(
     var note by rememberSaveable { mutableStateOf("") }
     var categoryOpen by rememberSaveable { mutableStateOf(false) }
     var submitted by rememberSaveable { mutableStateOf(false) }
-    var message by rememberSaveable { mutableStateOf<String?>(null) }
     val categoryState by
     transactionViewModel.categoryState.collectAsStateWithLifecycle()
     val saveState by
@@ -196,8 +196,9 @@ fun AddTransactionScreen(
                         placeholder = { Text("Tambah catatan... (opsional)") }, shape = RoundedCornerShape(14.dp))
                 }
                 if (!income) {
-                    OutlinedButton(onClick = { message = "Fitur scan struk belum tersedia." }, modifier = Modifier.fillMaxWidth()) {
-                        Text("SCAN STRUK", color = FormInk)
+                    OutlinedButton(onClick = onScanReceipt, enabled = !saveState.isSaving && saveState.savedTransactionId == null,
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text("🧾 SCAN STRUK", color = FormInk)
                     }
                 }
                 Button(
@@ -300,10 +301,6 @@ fun AddTransactionScreen(
                 }
             }
         )
-    }
-    message?.let { info ->
-        AlertDialog(onDismissRequest = { message = null }, title = { Text("Informasi") }, text = { Text(info) },
-            confirmButton = { TextButton(onClick = { message = null }) { Text("Mengerti") } })
     }
 }
 

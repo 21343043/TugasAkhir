@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fadhil.financereceipt.ui.receipt.ReceiptPhotoDialog
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -27,13 +28,24 @@ import java.util.Locale
 fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
     val state by historyViewModel.uiState.collectAsStateWithLifecycle()
     val manageState by historyViewModel.manageState.collectAsStateWithLifecycle()
+    val receiptPhotoState by historyViewModel.receiptPhotoState.collectAsStateWithLifecycle()
+    var viewingReceiptId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editTransactionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteTransactionId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deleteSummary by rememberSaveable { mutableStateOf("") }
     var successMessage by rememberSaveable { mutableStateOf<String?>(null) }
     val busy = manageState.isWorking || manageState.completedMessage != null
     val actionsEnabled = !busy && editTransactionId == null &&
-            deleteTransactionId == null && successMessage == null
+            deleteTransactionId == null && successMessage == null && viewingReceiptId == null
+
+    LaunchedEffect(viewingReceiptId) {
+        val id = viewingReceiptId
+        if (id == null) historyViewModel.closeReceiptPhoto()
+        else historyViewModel.loadReceiptPhoto(id)
+    }
+    DisposableEffect(historyViewModel) {
+        onDispose { historyViewModel.closeReceiptPhoto() }
+    }
 
     LaunchedEffect(manageState.completedMessage) {
         manageState.completedMessage?.let {
@@ -121,6 +133,7 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                         TransactionItem(
                             item = it,
                             actionsEnabled = actionsEnabled,
+                            onViewReceipt = { viewingReceiptId = it.transaction.transactionId },
                             onEdit = {
                                 historyViewModel.resetManageState()
                                 editTransactionId = it.transaction.transactionId
@@ -150,9 +163,12 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
             transaction = editing.transaction,
             categories = state.categories,
             manageState = manageState,
+            onViewReceipt = { viewingReceiptId = editing.transaction.transactionId },
             onDismiss = {
-                editTransactionId = null
-                historyViewModel.resetManageState()
+                if (viewingReceiptId == null) {
+                    editTransactionId = null
+                    historyViewModel.resetManageState()
+                }
             },
             onSave = { categoryId, type, amount, date, note ->
                 historyViewModel.updateTransaction(
@@ -169,6 +185,19 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                 editTransactionId = null
                 historyViewModel.resetManageState()
             }) { Text("Tutup") } }
+        )
+    }
+
+    // Tetap compose dialog edit di bawah penampil agar seluruh draf isian terjaga.
+    viewingReceiptId?.let { id ->
+        ReceiptPhotoDialog(
+            state = if (receiptPhotoState.transactionId == id) receiptPhotoState
+                else ReceiptPhotoUiState(transactionId = id, isLoading = true),
+            onDismiss = {
+                viewingReceiptId = null
+                historyViewModel.closeReceiptPhoto()
+            },
+            onRetry = { historyViewModel.loadReceiptPhoto(id) }
         )
     }
 

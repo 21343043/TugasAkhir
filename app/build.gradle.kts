@@ -39,6 +39,9 @@ android {
 }
 
 dependencies {
+    // Model Latin disertakan di APK, tanpa unduhan model pada pemakaian pertama.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

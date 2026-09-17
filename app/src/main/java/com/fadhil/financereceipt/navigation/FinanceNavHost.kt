@@ -19,6 +19,7 @@ import com.fadhil.financereceipt.ui.history.HistoryScreen
 import com.fadhil.financereceipt.ui.home.HomeScreen
 import com.fadhil.financereceipt.ui.plan.PlanScreen
 import com.fadhil.financereceipt.ui.transaction.AddTransactionScreen
+import com.fadhil.financereceipt.ui.receipt.ScanReceiptScreen
 
 private const val OPEN_CURRENT_MONTH = "open_current_month"
 
@@ -45,7 +46,7 @@ fun FinanceNavHost() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            if (currentRoute != AppDestination.ADD_TRANSACTION.route) {
+            if (currentRoute != AppDestination.ADD_TRANSACTION.route && currentRoute != AppDestination.SCAN_RECEIPT.route) {
                 NavigationBar {
                     bottomNavigationItems.forEach { item ->
                         NavigationBarItem(
@@ -78,7 +79,14 @@ fun FinanceNavHost() {
             }
             composable(AppDestination.HISTORY.route) { HistoryScreen() }
             composable(AppDestination.ADD_TRANSACTION.route) {
-                AddTransactionScreen(onBack = { navController.popBackStack() })
+                AddTransactionScreen(onBack = { navController.popBackStack() },
+                    onScanReceipt = { navController.navigate(AppDestination.SCAN_RECEIPT.route) { launchSingleTop = true } })
+            }
+            composable(AppDestination.SCAN_RECEIPT.route) {
+                ScanReceiptScreen(onBack = { navController.popBackStack() }, onSaved = {
+                    navController.popBackStack(AppDestination.ADD_TRANSACTION.route, inclusive = true)
+                    navController.openMainTab(AppDestination.HISTORY)
+                })
             }
             composable(AppDestination.PLAN.route) { entry ->
                 val openCurrentMonth by entry.savedStateHandle

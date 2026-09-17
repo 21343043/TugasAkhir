@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,9 +29,11 @@ fun TransactionEditDialog(
     categories: List<CategoryEntity>,
     manageState: TransactionManageState,
     onDismiss: () -> Unit,
-    onSave: (Long?, String, String, Long, String) -> Unit
+    onSave: (Long?, String, String, Long, String) -> Unit,
+    onViewReceipt: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val id = transaction.transactionId
     var type by rememberSaveable(id) { mutableStateOf(transaction.transactionType) }
     var categoryId by rememberSaveable(id) { mutableStateOf<Long?>(transaction.categoryId) }
@@ -60,6 +63,17 @@ fun TransactionEditDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (transaction.source == "scan_struk" && onViewReceipt != null) {
+                    OutlinedButton(
+                        onClick = {
+                            keyboard?.hide()
+                            onViewReceipt()
+                        },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Lihat foto struk") }
+                    Text("Cocokkan isian dengan foto struk sebelum menyimpan.", fontSize = 12.sp)
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("expense" to "Pengeluaran", "income" to "Pemasukan").forEach { (value, label) ->
                         Button(

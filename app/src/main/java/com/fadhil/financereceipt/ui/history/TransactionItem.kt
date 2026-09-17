@@ -23,7 +23,8 @@ fun TransactionItem(
     item: TransactionWithCategory,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
-    actionsEnabled: Boolean = true
+    actionsEnabled: Boolean = true,
+    onViewReceipt: (() -> Unit)? = null
 ) {
     val transaction = item.transaction
     val isIncome = transaction.transactionType == "income"
@@ -58,6 +59,14 @@ fun TransactionItem(
             )
             if (transaction.note.isNotBlank()) {
                 Text(transaction.note, color = Color(0xFF172B46), fontSize = 14.sp)
+            }
+            if (transaction.source == "scan_struk") {
+                Text("🧾 Dari scan struk", color = Color(0xFF667A96), fontSize = 12.sp)
+                onViewReceipt?.let { action ->
+                    TextButton(onClick = action, enabled = actionsEnabled) {
+                        Text("Lihat Struk")
+                    }
+                }
             }
             if (onEdit != null || onDelete != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

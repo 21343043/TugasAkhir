@@ -12,14 +12,17 @@ import com.fadhil.financereceipt.data.local.dao.CategoryDao
 import com.fadhil.financereceipt.data.local.dao.TransactionDao
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
+import com.fadhil.financereceipt.data.local.entity.ReceiptExtractionEntity
+import com.fadhil.financereceipt.data.local.dao.ReceiptExtractionDao
 
 @Database(
     entities = [
         CategoryEntity::class,
         TransactionEntity::class,
-        FinancialPlanEntity::class
+        FinancialPlanEntity::class,
+        ReceiptExtractionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -29,6 +32,8 @@ abstract class FinanceDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
 
     abstract fun financialPlanDao(): FinancialPlanDao
+
+    abstract fun receiptExtractionDao(): ReceiptExtractionDao
 
     companion object {
 
@@ -106,6 +111,34 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `receipt_extractions` (
+                        `extraction_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `transaction_id` INTEGER NOT NULL,
+                        `store_name` TEXT NOT NULL,
+                        `receipt_date` INTEGER NOT NULL,
+                        `total_amount` INTEGER NOT NULL,
+                        `raw_ocr_text` TEXT NOT NULL,
+                        `normalized_text` TEXT NOT NULL,
+                        `image_path` TEXT NOT NULL,
+                        `detected_store_name` TEXT,
+                        `detected_receipt_date` INTEGER,
+                        `detected_total_amount` INTEGER,
+                        `parser_version` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`transaction_id`)
+                            ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS `index_receipt_extractions_transaction_id`
+                    ON `receipt_extractions` (`transaction_id`)
+                """.trimIndent())
+            }
+        }
+
         fun getInstance(context: Context): FinanceDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -113,7 +146,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                     FinanceDatabase::class.java,
                     "finance_receipt.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
