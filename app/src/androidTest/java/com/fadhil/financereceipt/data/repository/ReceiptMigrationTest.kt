@@ -9,7 +9,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Buat DB v3 sesuai skema berkas asli; Room memvalidasi seluruh skema v4 setelah migrasi. */
+/** Buat DB v3 sesuai skema asli; Room memvalidasi skema v5 setelah migrasi kategori. */
 @RunWith(AndroidJUnit4::class)
 class ReceiptMigrationTest {
     @Test fun migrationPreservesCategoryTransactionAndPlan() = runBlocking {
@@ -43,9 +43,11 @@ class ReceiptMigrationTest {
                 old.version = 3
             }
             val migrated = Room.databaseBuilder(context, FinanceDatabase::class.java, name)
-                .addMigrations(FinanceDatabase.MIGRATION_3_4).build()
+                .addMigrations(FinanceDatabase.MIGRATION_3_4, FinanceDatabase.MIGRATION_4_5).build()
             try {
                 assertEquals("Belanja", migrated.categoryDao().getById(1)?.categoryName)
+                assertEquals("WANTS", migrated.categoryDao().getById(1)?.financialGroup)
+                assertEquals(30, migrated.categoryDao().getById(1)?.recommendedPercentage)
                 assertEquals(25000L, migrated.transactionDao().getById(1)?.amount)
                 assertEquals(100000L, migrated.financialPlanDao().getById(1)?.budgetAmount)
                 assertTrue(migrated.receiptExtractionDao().getImagePaths().isEmpty())

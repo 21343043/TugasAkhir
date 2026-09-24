@@ -29,5 +29,36 @@ data class CategoryEntity(
     val emoji: String,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis()
-)
+    val createdAt: Long = System.currentTimeMillis(),
+
+    // Null untuk pemasukan atau kategori lama yang belum dapat dipetakan.
+    @ColumnInfo(name = "financial_group", defaultValue = "NULL")
+    val financialGroup: String? = null,
+
+    // Persentase kelompok, bukan jatah untuk setiap kategori di dalamnya.
+    @ColumnInfo(name = "recommended_percentage", defaultValue = "NULL")
+    val recommendedPercentage: Int? = percentageFor(financialGroup)
+) {
+    init {
+        require(recommendedPercentage == percentageFor(financialGroup)) {
+            "Pasangan kelompok dan persentase kategori tidak valid."
+        }
+        require(financialGroup == null || transactionType == "expense") {
+            "Kelompok budgeting hanya berlaku untuk kategori pengeluaran."
+        }
+    }
+
+    companion object {
+        const val NEEDS = "NEEDS"
+        const val WANTS = "WANTS"
+        const val SAVINGS = "SAVINGS"
+
+        fun percentageFor(group: String?): Int? = when (group) {
+            null -> null
+            NEEDS -> 50
+            WANTS -> 30
+            SAVINGS -> 20
+            else -> throw IllegalArgumentException("Kelompok keuangan tidak valid: $group")
+        }
+    }
+}

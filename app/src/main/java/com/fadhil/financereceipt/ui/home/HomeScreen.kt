@@ -37,7 +37,12 @@ fun HomeScreen(
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val state by homeViewModel.uiState.collectAsStateWithLifecycle()
-    HomeContent(state, onAddTransaction, homeViewModel::loadHome, onOpenPlan)
+    HomeContent(
+        state, onAddTransaction, homeViewModel::loadHome, onOpenPlan,
+        onPreviousAnalysisMonth = { homeViewModel.shiftAnalysisMonth(-1) },
+        onNextAnalysisMonth = { homeViewModel.shiftAnalysisMonth(1) },
+        onCurrentAnalysisMonth = homeViewModel::resetAnalysisMonth
+    )
 }
 
 @Composable
@@ -45,7 +50,10 @@ private fun HomeContent(
     state: HomeUiState,
     onAddTransaction: () -> Unit = {},
     onRetry: () -> Unit = {},
-    onOpenPlan: () -> Unit = {}
+    onOpenPlan: () -> Unit = {},
+    onPreviousAnalysisMonth: () -> Unit = {},
+    onNextAnalysisMonth: () -> Unit = {},
+    onCurrentAnalysisMonth: () -> Unit = {}
 ) {
     var anchorMillis by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     var selectedPeriod by rememberSaveable { mutableStateOf("Harian") }
@@ -141,6 +149,13 @@ private fun HomeContent(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                MonthlyFinanceSummary(
+                    state = state,
+                    onPreviousMonth = onPreviousAnalysisMonth,
+                    onNextMonth = onNextAnalysisMonth,
+                    onCurrentMonth = onCurrentAnalysisMonth,
+                    onRetry = onRetry
+                )
                 when {
                     state.isLoading -> {
                         CircularProgressIndicator(color = ReceiptRed,

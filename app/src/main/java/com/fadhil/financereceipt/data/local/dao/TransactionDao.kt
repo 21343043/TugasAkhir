@@ -39,7 +39,8 @@ interface TransactionDao {
     suspend fun getById(id: Long): TransactionEntity?
     @Query(
         """
-        SELECT t.*, c.category_name AS categoryName, c.emoji AS categoryEmoji
+        SELECT t.*, c.category_name AS categoryName, c.emoji AS categoryEmoji,
+               c.financial_group AS financialGroup
         FROM transactions AS t
         INNER JOIN categories AS c ON c.category_id = t.category_id
         ORDER BY t.transaction_date DESC, t.transaction_id DESC

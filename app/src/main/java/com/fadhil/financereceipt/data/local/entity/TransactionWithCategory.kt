@@ -6,5 +6,6 @@ import androidx.room.Embedded
 data class TransactionWithCategory(
     @Embedded val transaction: TransactionEntity,
     val categoryName: String,
-    val categoryEmoji: String
+    val categoryEmoji: String,
+    val financialGroup: String? = null
 )

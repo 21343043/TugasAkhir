@@ -22,7 +22,7 @@ import com.fadhil.financereceipt.data.local.dao.ReceiptExtractionDao
         FinancialPlanEntity::class,
         ReceiptExtractionEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -139,6 +139,42 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `financial_group` TEXT DEFAULT NULL")
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `recommended_percentage` INTEGER DEFAULT NULL")
+
+                // Pemetaan satu kali. Nama, ID, emoji, dan relasi kategori lama tetap utuh.
+                // Bekukan aturan migrasi ini; perubahan berikutnya memakai migrasi baru.
+                db.execSQL("""
+                    UPDATE `categories`
+                    SET `financial_group` = CASE
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'makanan', 'transportasi', 'tagihan', 'tagihan pokok',
+                            'kesehatan', 'pendidikan', 'tempat tinggal'
+                        ) THEN 'NEEDS'
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'hiburan', 'belanja', 'shopping', 'traveling', 'hobi'
+                        ) THEN 'WANTS'
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'tabungan', 'hutang', 'investasi', 'dana darurat'
+                        ) THEN 'SAVINGS'
+                        ELSE NULL
+                    END
+                    WHERE `transaction_type` = 'expense'
+                """.trimIndent())
+                db.execSQL("""
+                    UPDATE `categories`
+                    SET `recommended_percentage` = CASE `financial_group`
+                        WHEN 'NEEDS' THEN 50
+                        WHEN 'WANTS' THEN 30
+                        WHEN 'SAVINGS' THEN 20
+                        ELSE NULL
+                    END
+                """.trimIndent())
+            }
+        }
+
         fun getInstance(context: Context): FinanceDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -146,7 +182,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                     FinanceDatabase::class.java,
                     "finance_receipt.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }
