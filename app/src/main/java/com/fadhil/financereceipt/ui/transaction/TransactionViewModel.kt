@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.repository.CategoryRepository
+import com.fadhil.financereceipt.ui.category.IncomeCategorySection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import com.fadhil.financereceipt.data.repository.TransactionRepository
 data class TransactionCategoryUiState(
     val isLoading: Boolean = true,
     val categories: List<CategoryEntity> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val incomeSections: List<IncomeCategorySection> = emptyList()
 )
 
 data class TransactionSaveUiState(
@@ -57,7 +59,8 @@ class TransactionViewModel(
                 repository.observeAll().collect { categories ->
                     _categoryState.value = TransactionCategoryUiState(
                         isLoading = false,
-                        categories = categories
+                        categories = categories,
+                        incomeSections = IncomeCategorySection.fromCategories(categories)
                     )
                 }
             } catch (error: CancellationException) {

@@ -37,7 +37,12 @@ data class CategoryEntity(
 
     // Persentase kelompok, bukan jatah untuk setiap kategori di dalamnya.
     @ColumnInfo(name = "recommended_percentage", defaultValue = "NULL")
-    val recommendedPercentage: Int? = percentageFor(financialGroup)
+    val recommendedPercentage: Int? = percentageFor(financialGroup),
+
+    // Induk pemasukan; categoryName adalah nama subkategori. Null untuk data lama
+    // yang belum diketahui sumbernya. Pengeluaran tetap memakai financialGroup.
+    @ColumnInfo(name = "income_group", defaultValue = "NULL")
+    val incomeGroup: String? = null
 ) {
     init {
         require(recommendedPercentage == percentageFor(financialGroup)) {
@@ -45,6 +50,12 @@ data class CategoryEntity(
         }
         require(financialGroup == null || transactionType == "expense") {
             "Kelompok budgeting hanya berlaku untuk kategori pengeluaran."
+        }
+        require(incomeGroup == null || IncomeGroup.fromCode(incomeGroup) != null) {
+            "Kelompok pemasukan tidak valid."
+        }
+        require(incomeGroup == null || transactionType == "income") {
+            "Kelompok pemasukan hanya berlaku untuk kategori pemasukan."
         }
     }
 

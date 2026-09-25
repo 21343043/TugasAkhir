@@ -3,6 +3,7 @@ package com.fadhil.financereceipt.data.repository
 import androidx.room.withTransaction
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
+import com.fadhil.financereceipt.data.local.entity.IncomeGroup
 import kotlinx.coroutines.flow.Flow
 
 class CategoryRepository(
@@ -14,6 +15,9 @@ class CategoryRepository(
         categoryDao.observeByType(type)
 
     fun observeAll(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
+
+    fun observeByIncomeGroup(group: IncomeGroup): Flow<List<CategoryEntity>> =
+        categoryDao.observeByIncomeGroup(group.name)
 
     fun observeByFinancialGroup(group: String): Flow<List<CategoryEntity>> {
         CategoryEntity.percentageFor(group) // Menolak nilai selain NEEDS/WANTS/SAVINGS.
@@ -36,11 +40,35 @@ class CategoryRepository(
         recommendedPercentage = CategoryEntity.percentageFor(group)
     )
 
+    private fun income(name: String, emoji: String, group: IncomeGroup) = CategoryEntity(
+        categoryName = name,
+        transactionType = "income",
+        emoji = emoji,
+        incomeGroup = group.name
+    )
+
     private fun defaultCategories(): List<CategoryEntity> = listOf(
-        CategoryEntity(categoryName = "Gaji", transactionType = "income", emoji = "💼"),
-        CategoryEntity(categoryName = "Bonus", transactionType = "income", emoji = "🎁"),
-        CategoryEntity(categoryName = "Uang Saku", transactionType = "income", emoji = "💰"),
-        CategoryEntity(categoryName = "Lainnya", transactionType = "income", emoji = "📥"),
+        income("Gaji", "💼", IncomeGroup.EMPLOYMENT),
+        income("Bonus", "🎁", IncomeGroup.EMPLOYMENT),
+        income("Tunjangan", "💼", IncomeGroup.EMPLOYMENT),
+        income("Honor", "📝", IncomeGroup.EMPLOYMENT),
+        income("Komisi", "🤝", IncomeGroup.EMPLOYMENT),
+
+        income("Business Profit", "🏪", IncomeGroup.BUSINESS),
+        income("Freelance", "💻", IncomeGroup.BUSINESS),
+        income("Sales", "🛒", IncomeGroup.BUSINESS),
+        income("Project Income", "📋", IncomeGroup.BUSINESS),
+
+        income("Dividend", "📈", IncomeGroup.INVESTMENT),
+        income("Rental Income", "🏠", IncomeGroup.INVESTMENT),
+        income("Investment Return", "💹", IncomeGroup.INVESTMENT),
+
+        income("Hadiah", "🎁", IncomeGroup.OTHER),
+        income("Cashback", "💰", IncomeGroup.OTHER),
+        income("Refund", "↩️", IncomeGroup.OTHER),
+        // Tetap tersedia agar pengguna lama tidak kehilangan pilihan ini.
+        income("Uang Saku", "💰", IncomeGroup.OTHER),
+        income("Lainnya", "📥", IncomeGroup.OTHER),
 
         expense("Makanan", "🍔", CategoryEntity.NEEDS),
         expense("Transportasi", "🚗", CategoryEntity.NEEDS),

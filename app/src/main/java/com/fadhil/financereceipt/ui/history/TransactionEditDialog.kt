@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
+import com.fadhil.financereceipt.ui.category.IncomeCategoryPicker
+import com.fadhil.financereceipt.ui.category.IncomeCategorySection
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -105,27 +107,38 @@ fun TransactionEditDialog(
 
                 Column {
                     Text("Kategori")
-                    Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { categoryOpen = true },
-                            enabled = !busy && availableCategories.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text(selectedCategory?.let { "${it.emoji} ${it.categoryName}" } ?: "Pilih kategori")
-                        }
-                        DropdownMenu(
-                            expanded = categoryOpen && !busy,
-                            onDismissRequest = { categoryOpen = false },
-                            modifier = Modifier.heightIn(max = 280.dp)
-                        ) {
-                            availableCategories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = { Text("${category.emoji} ${category.categoryName}") },
-                                    onClick = {
-                                        categoryId = category.categoryId
-                                        categoryOpen = false
-                                    }
-                                )
+                    if (type == "income") {
+                        IncomeCategoryPicker(
+                            sections = remember(availableCategories) {
+                                IncomeCategorySection.fromCategories(availableCategories)
+                            },
+                            selectedCategoryId = categoryId,
+                            onCategorySelected = { categoryId = it },
+                            enabled = !busy
+                        )
+                    } else {
+                        Box(Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { categoryOpen = true },
+                                enabled = !busy && availableCategories.isNotEmpty(),
+                                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(selectedCategory?.let { "${it.emoji} ${it.categoryName}" } ?: "Pilih kategori")
+                            }
+                            DropdownMenu(
+                                expanded = categoryOpen && !busy,
+                                onDismissRequest = { categoryOpen = false },
+                                modifier = Modifier.heightIn(max = 280.dp)
+                            ) {
+                                availableCategories.forEach { category ->
+                                    DropdownMenuItem(
+                                        text = { Text("${category.emoji} ${category.categoryName}") },
+                                        onClick = {
+                                            categoryId = category.categoryId
+                                            categoryOpen = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

@@ -22,7 +22,7 @@ import com.fadhil.financereceipt.data.local.dao.ReceiptExtractionDao
         FinancialPlanEntity::class,
         ReceiptExtractionEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class FinanceDatabase : RoomDatabase() {
@@ -175,6 +175,33 @@ abstract class FinanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `categories` ADD COLUMN `income_group` TEXT DEFAULT NULL")
+                // Aturan satu kali dibekukan di sini, tidak mengikuti enum/default masa depan.
+                // Tidak mengganti nama/ID, menimpa transaksi, atau menebak nama yang ambigu.
+                db.execSQL("""
+                    UPDATE `categories`
+                    SET `income_group` = CASE
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'gaji', 'salary', 'bonus', 'tunjangan', 'honor', 'komisi'
+                        ) THEN 'EMPLOYMENT'
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'business profit', 'freelance', 'sales', 'project income'
+                        ) THEN 'BUSINESS'
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'dividend', 'rental income', 'investment return'
+                        ) THEN 'INVESTMENT'
+                        WHEN LOWER(TRIM(`category_name`)) IN (
+                            'hadiah', 'cashback', 'refund', 'uang saku', 'lainnya'
+                        ) THEN 'OTHER'
+                        ELSE NULL
+                    END
+                    WHERE `transaction_type` = 'income'
+                """.trimIndent())
+            }
+        }
+
         fun getInstance(context: Context): FinanceDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -182,7 +209,7 @@ abstract class FinanceDatabase : RoomDatabase() {
                     FinanceDatabase::class.java,
                     "finance_receipt.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

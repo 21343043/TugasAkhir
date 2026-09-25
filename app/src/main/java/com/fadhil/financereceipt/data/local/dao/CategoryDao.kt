@@ -50,6 +50,15 @@ interface CategoryDao {
     @Query(
         """
         SELECT * FROM categories
+        WHERE transaction_type = 'income' AND income_group = :group
+        ORDER BY category_name ASC
+        """
+    )
+    fun observeByIncomeGroup(group: String): Flow<List<CategoryEntity>>
+
+    @Query(
+        """
+        SELECT * FROM categories
         WHERE category_id = :id
         LIMIT 1
         """

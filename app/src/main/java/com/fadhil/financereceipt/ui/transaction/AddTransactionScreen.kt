@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fadhil.financereceipt.ui.category.IncomeCategoryPicker
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -117,23 +118,35 @@ fun AddTransactionScreen(
                 Column {
                     FormLabel("KATEGORI")
 
-                    OutlinedButton(
-                        onClick = { categoryOpen = true },
-                        enabled = !categoryState.isLoading &&
-                                categoryState.errorMessage == null &&
-                                categories.isNotEmpty(),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(
-                            text = when {
-                                categoryState.isLoading -> "Memuat kategori..."
-                                selectedCategory != null ->
-                                    "${selectedCategory.emoji} ${selectedCategory.categoryName}"
-                                else -> "Pilih kategori"
-                            },
-                            color = FormInk
+                    if (income) {
+                        IncomeCategoryPicker(
+                            sections = categoryState.incomeSections,
+                            selectedCategoryId = selectedCategoryId,
+                            onCategorySelected = { selectedCategoryId = it },
+                            enabled = !categoryState.isLoading &&
+                                    categoryState.errorMessage == null &&
+                                    !saveState.isSaving && saveState.savedTransactionId == null
                         )
+                    } else {
+                        OutlinedButton(
+                            onClick = { categoryOpen = true },
+                            enabled = !categoryState.isLoading &&
+                                    categoryState.errorMessage == null &&
+                                    categories.isNotEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                text = when {
+                                    categoryState.isLoading -> "Memuat kategori..."
+                                    selectedCategory != null ->
+                                        "${selectedCategory.emoji} ${selectedCategory.categoryName}"
+                                    else -> "Pilih kategori"
+                                },
+                                color = FormInk
+                            )
+                        }
+
                     }
 
                     categoryState.errorMessage?.let { error ->
