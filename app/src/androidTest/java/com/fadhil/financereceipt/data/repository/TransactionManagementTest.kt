@@ -38,8 +38,8 @@ class TransactionManagementTest {
         ).build()
         transactions = TransactionRepository(database)
         plans = FinancialPlanRepository(database)
-        food = database.categoryDao().insert(CategoryEntity(categoryName = "Makanan", transactionType = "expense", emoji = "🍔"))
-        travel = database.categoryDao().insert(CategoryEntity(categoryName = "Transportasi", transactionType = "expense", emoji = "🚗"))
+        food = database.categoryDao().insert(CategoryEntity(categoryName = "Makanan", transactionType = "expense", emoji = "🍔", financialGroup = CategoryEntity.NEEDS))
+        travel = database.categoryDao().insert(CategoryEntity(categoryName = "Transportasi", transactionType = "expense", emoji = "🚗", financialGroup = CategoryEntity.NEEDS))
         salary = database.categoryDao().insert(CategoryEntity(categoryName = "Gaji", transactionType = "income", emoji = "💼"))
     }
 
@@ -145,6 +145,21 @@ class TransactionManagementTest {
         } catch (_: IllegalArgumentException) {
             // Validasi repository diharapkan menolak operasi ini.
         }
+    }
+
+    @Test fun unclassifiedExpenseCannotBeSavedOrEditedButHistoryRemainsReadable() = runBlocking {
+        val legacy = database.categoryDao().insert(CategoryEntity(
+            categoryName = "Kategori lama", transactionType = "expense", emoji = ""))
+        rejected { transactions.saveManualTransaction(legacy, "expense", 1000, date(9), "") }
+        val id = database.transactionDao().insert(TransactionEntity(categoryId = legacy,
+            transactionType = "expense", amount = 1000, transactionDate = date(9),
+            note = "lama", source = "manual"))
+        val before = database.transactionDao().getById(id)
+        assertEquals(legacy, transactions.observeHistory().first().single().transaction.categoryId)
+        rejected { transactions.updateTransaction(id, legacy, "expense", 2000, date(9), "revisi") }
+        assertEquals(before, database.transactionDao().getById(id))
+        transactions.updateTransaction(id, food, "expense", 1000, date(9), "lama")
+        assertEquals(food, database.transactionDao().getById(id)?.categoryId)
     }
 
     private fun date(month: Int): Long = Calendar.getInstance().apply {

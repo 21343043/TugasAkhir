@@ -59,6 +59,11 @@ data class CategoryEntity(
         }
     }
 
+    // Dipakai untuk validasi tambah/edit manual. Null tetap dapat dibaca dari histori lama.
+    fun hasValidExpenseGroup(): Boolean = transactionType == "expense" &&
+        financialGroup in setOf(NEEDS, WANTS, SAVINGS) &&
+        !categoryName.trim().equals("Belum dikelompokkan", ignoreCase = true)
+
     companion object {
         const val NEEDS = "NEEDS"
         const val WANTS = "WANTS"

@@ -8,6 +8,7 @@ import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.repository.CategoryRepository
 import com.fadhil.financereceipt.ui.category.IncomeCategorySection
+import com.fadhil.financereceipt.ui.category.ExpenseCategorySection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,8 @@ data class TransactionCategoryUiState(
     val isLoading: Boolean = true,
     val categories: List<CategoryEntity> = emptyList(),
     val errorMessage: String? = null,
-    val incomeSections: List<IncomeCategorySection> = emptyList()
+    val incomeSections: List<IncomeCategorySection> = emptyList(),
+    val expenseSections: List<ExpenseCategorySection> = emptyList()
 )
 
 data class TransactionSaveUiState(
@@ -60,7 +62,8 @@ class TransactionViewModel(
                     _categoryState.value = TransactionCategoryUiState(
                         isLoading = false,
                         categories = categories,
-                        incomeSections = IncomeCategorySection.fromCategories(categories)
+                        incomeSections = IncomeCategorySection.fromCategories(categories),
+                        expenseSections = ExpenseCategorySection.fromCategories(categories)
                     )
                 }
             } catch (error: CancellationException) {
@@ -105,7 +108,16 @@ class TransactionViewModel(
 
         if (categoryId == null) {
             _saveState.value = TransactionSaveUiState(
-                errorMessage = "Pilih kategori terlebih dahulu."
+                errorMessage = "Pilih kelompok dan subkategori terlebih dahulu."
+            )
+            return
+        }
+
+        val selectedCategory = _categoryState.value.categories.firstOrNull { it.categoryId == categoryId }
+        if (selectedCategory == null || selectedCategory.transactionType != transactionType ||
+            (transactionType == "expense" && !selectedCategory.hasValidExpenseGroup())) {
+            _saveState.value = TransactionSaveUiState(
+                errorMessage = "Pilih kelompok dan subkategori yang valid."
             )
             return
         }

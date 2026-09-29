@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fadhil.financereceipt.ui.category.IncomeCategoryPicker
+import com.fadhil.financereceipt.ui.category.ExpenseCategoryPicker
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -43,7 +47,6 @@ fun AddTransactionScreen(
     }
     var amount by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
-    var categoryOpen by rememberSaveable { mutableStateOf(false) }
     var submitted by rememberSaveable { mutableStateOf(false) }
     val categoryState by
     transactionViewModel.categoryState.collectAsStateWithLifecycle()
@@ -56,8 +59,10 @@ fun AddTransactionScreen(
 
     val transactionType = if (income) "income" else "expense"
 
-    val categories = categoryState.categories.filter {
-        it.transactionType == transactionType
+    val categories = if (income) {
+        categoryState.incomeSections.flatMap { it.categories }
+    } else {
+        categoryState.expenseSections.flatMap { it.categories }
     }
 
     val selectedCategory = categories.firstOrNull {
@@ -81,26 +86,17 @@ fun AddTransactionScreen(
             shape = RoundedCornerShape(24.dp), shadowElevation = 3.dp
         ) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf(false, true).forEach { isIncome ->
-                        Button(
-                            onClick = {
-                                if (income != isIncome) {
-                                    income = isIncome
-                                    selectedCategoryId = null
-                                    categoryOpen = false
-                                    submitted = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (income == isIncome) { if (isIncome) Color(0xFF00B982) else FormRed } else Color(0xFFF1F4F8),
-                                contentColor = if (income == isIncome) Color.White else Color(0xFF667A96)
-                            )
-                        ) { Text(if (isIncome) "Pemasukan" else "Pengeluaran", fontSize = 12.sp) }
+                TransactionTypeTabs(
+                    income = income,
+                    enabled = !saveState.isSaving && saveState.savedTransactionId == null,
+                    onIncomeChange = { isIncome ->
+                        if (income != isIncome) {
+                            income = isIncome
+                            selectedCategoryId = null
+                            submitted = false
+                        }
                     }
-                }
+                )
                 Column {
                     FormLabel("TANGGAL")
                     OutlinedButton(
@@ -128,25 +124,14 @@ fun AddTransactionScreen(
                                     !saveState.isSaving && saveState.savedTransactionId == null
                         )
                     } else {
-                        OutlinedButton(
-                            onClick = { categoryOpen = true },
+                        ExpenseCategoryPicker(
+                            sections = categoryState.expenseSections,
+                            selectedCategoryId = selectedCategoryId,
+                            onCategorySelected = { selectedCategoryId = it },
                             enabled = !categoryState.isLoading &&
                                     categoryState.errorMessage == null &&
-                                    categories.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text(
-                                text = when {
-                                    categoryState.isLoading -> "Memuat kategori..."
-                                    selectedCategory != null ->
-                                        "${selectedCategory.emoji} ${selectedCategory.categoryName}"
-                                    else -> "Pilih kategori"
-                                },
-                                color = FormInk
-                            )
-                        }
-
+                                    !saveState.isSaving && saveState.savedTransactionId == null
+                        )
                     }
 
                     categoryState.errorMessage?.let { error ->
@@ -183,7 +168,7 @@ fun AddTransactionScreen(
                         selectedCategory == null
                     ) {
                         Text(
-                            text = "Pilih kategori terlebih dahulu.",
+                            text = "Pilih kelompok dan subkategori terlebih dahulu.",
                             color = FormRed,
                             fontSize = 12.sp
                         )
@@ -254,36 +239,6 @@ fun AddTransactionScreen(
             }
         }
     }
-    if (categoryOpen) {
-        AlertDialog(
-            onDismissRequest = { categoryOpen = false },
-            title = { Text("Pilih kategori") },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 360.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    categories.forEach { item ->
-                        TextButton(
-                            onClick = {
-                                selectedCategoryId = item.categoryId
-                                categoryOpen = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("${item.emoji} ${item.categoryName}")
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { categoryOpen = false }) {
-                    Text("Batal")
-                }
-            }
-        )
-    }
     if (saveState.savedTransactionId != null) {
         AlertDialog(
             onDismissRequest = onBack,
@@ -320,4 +275,31 @@ fun AddTransactionScreen(
 @Composable
 private fun FormLabel(text: String) {
     Text(text, color = Color(0xFF667A96), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+}
+
+/** Kedua tab memakai satu spesifikasi visual dan perilaku Material Button. */
+@Composable
+internal fun TransactionTypeTabs(
+    income: Boolean,
+    onIncomeChange: (Boolean) -> Unit,
+    enabled: Boolean = true
+) {
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        listOf(false, true).forEach { isIncome ->
+            val isSelected = income == isIncome
+            Button(
+                onClick = { onIncomeChange(isIncome) },
+                enabled = enabled,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).fillMaxHeight()
+                    .testTag(if (isIncome) "transaction_type_income" else "transaction_type_expense")
+                    .semantics { selected = isSelected },
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) FormRed else Color(0xFFF1F4F8),
+                    contentColor = if (isSelected) Color.White else Color(0xFF667A96)
+                )
+            ) { Text(if (isIncome) "Pemasukan" else "Pengeluaran", fontSize = 12.sp) }
+        }
+    }
 }

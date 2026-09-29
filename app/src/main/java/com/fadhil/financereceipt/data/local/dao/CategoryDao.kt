@@ -24,15 +24,21 @@ interface CategoryDao {
     @Query(
         """
         SELECT * FROM categories
+        WHERE LOWER(TRIM(category_name)) != 'belum dikelompokkan'
         ORDER BY category_name ASC
         """
     )
     fun observeAll(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM categories ORDER BY category_id ASC")
+    suspend fun getAll(): List<CategoryEntity>
+
     @Query(
         """
         SELECT * FROM categories
         WHERE transaction_type = :type
+          AND LOWER(TRIM(category_name)) != 'belum dikelompokkan'
+          AND (:type != 'expense' OR financial_group IN ('NEEDS', 'WANTS', 'SAVINGS'))
         ORDER BY category_name ASC
         """
     )

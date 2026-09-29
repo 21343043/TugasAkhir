@@ -38,6 +38,9 @@ class TransactionRepository(
             require(category.transactionType == transactionType) {
                 "Kategori tidak sesuai dengan jenis transaksi."
             }
+            require(transactionType != "expense" || category.hasValidExpenseGroup()) {
+                "Pilih kategori pengeluaran dalam Needs, Wants, atau Savings."
+            }
 
             database.transactionDao().insert(
                 TransactionEntity(
@@ -74,6 +77,9 @@ class TransactionRepository(
             }
             require(category.transactionType == transactionType) {
                 "Kategori tidak sesuai dengan jenis transaksi."
+            }
+            require(transactionType != "expense" || category.hasValidExpenseGroup()) {
+                "Pilih kategori pengeluaran dalam Needs, Wants, atau Savings."
             }
             // Pertahankan ID, sumber pencatatan, dan waktu pembuatan transaksi.
             check(database.transactionDao().update(existing.copy(

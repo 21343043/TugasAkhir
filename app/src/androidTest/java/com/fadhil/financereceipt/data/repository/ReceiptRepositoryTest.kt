@@ -26,7 +26,7 @@ class ReceiptRepositoryTest {
         ).build()
         repository = ReceiptRepository(database)
         categoryId = database.categoryDao().insert(CategoryEntity(
-            categoryName = "Belanja", transactionType = "expense", emoji = "🛒"))
+            categoryName = "Belanja", transactionType = "expense", emoji = "🛒", financialGroup = CategoryEntity.WANTS))
     }
     @After fun tearDown() { database.close() }
 

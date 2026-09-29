@@ -5,6 +5,7 @@ import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.IncomeGroup
 import kotlinx.coroutines.flow.Flow
+import java.util.Locale
 
 class CategoryRepository(
     private val database: FinanceDatabase
@@ -26,9 +27,15 @@ class CategoryRepository(
 
     suspend fun initializeDefaultCategories() {
         database.withTransaction {
-            // IGNORE + indeks unik nama/jenis menambah kategori yang belum ada.
-            // Data lama tidak ditimpa dan ID kategori tidak berubah.
-            categoryDao.insertAll(defaultCategories())
+            // Hindari duplikasi kapitalisasi nama pengeluaran lama.
+            // Kategori/kelompok lain yang sudah ada tidak ditimpa.
+            val existingExpenseNames = categoryDao.getAll()
+                .filter { it.transactionType == "expense" }
+                .map { it.categoryName.trim().lowercase(Locale.ROOT) }.toSet()
+            categoryDao.insertAll(defaultCategories().filter {
+                it.transactionType != "expense" ||
+                    it.categoryName.trim().lowercase(Locale.ROOT) !in existingExpenseNames
+            })
         }
     }
 
@@ -72,19 +79,19 @@ class CategoryRepository(
 
         expense("Makanan", "🍔", CategoryEntity.NEEDS),
         expense("Transportasi", "🚗", CategoryEntity.NEEDS),
-        expense("Tagihan Pokok", "💡", CategoryEntity.NEEDS),
+        expense("Tagihan", "💡", CategoryEntity.NEEDS),
         expense("Kesehatan", "🏥", CategoryEntity.NEEDS),
         expense("Pendidikan", "📚", CategoryEntity.NEEDS),
-        expense("Tempat tinggal", "🏠", CategoryEntity.NEEDS),
+        expense("Tempat Tinggal", "🏠", CategoryEntity.NEEDS),
 
         expense("Hiburan", "🎬", CategoryEntity.WANTS),
-        expense("Shopping", "🛍️", CategoryEntity.WANTS),
+        expense("Belanja", "🛍️", CategoryEntity.WANTS),
         expense("Traveling", "✈️", CategoryEntity.WANTS),
         expense("Hobi", "🎨", CategoryEntity.WANTS),
+        expense("Perawatan Diri", "🧴", CategoryEntity.WANTS),
 
         expense("Tabungan", "🏦", CategoryEntity.SAVINGS),
-        expense("Hutang", "🧾", CategoryEntity.SAVINGS),
         expense("Investasi", "📈", CategoryEntity.SAVINGS),
-        expense("Dana darurat", "🛟", CategoryEntity.SAVINGS)
+        expense("Dana Darurat", "🛟", CategoryEntity.SAVINGS)
     )
 }

@@ -21,6 +21,8 @@ import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.TransactionEntity
 import com.fadhil.financereceipt.ui.category.IncomeCategoryPicker
 import com.fadhil.financereceipt.ui.category.IncomeCategorySection
+import com.fadhil.financereceipt.ui.category.ExpenseCategoryPicker
+import com.fadhil.financereceipt.ui.category.ExpenseCategorySection
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -42,12 +44,19 @@ fun TransactionEditDialog(
     var amount by rememberSaveable(id) { mutableStateOf(transaction.amount.toString()) }
     var dateMillis by rememberSaveable(id) { mutableLongStateOf(transaction.transactionDate) }
     var note by rememberSaveable(id) { mutableStateOf(transaction.note) }
-    var categoryOpen by rememberSaveable(id) { mutableStateOf(false) }
     var dateOpen by rememberSaveable(id) { mutableStateOf(false) }
     var submitted by rememberSaveable(id) { mutableStateOf(false) }
     val busy = manageState.isWorking || manageState.completedMessage != null
     val availableCategories = categories.filter { it.transactionType == type }
-    val selectedCategory = availableCategories.firstOrNull { it.categoryId == categoryId }
+    val incomeSections = remember(availableCategories) {
+        IncomeCategorySection.fromCategories(availableCategories)
+    }
+    val expenseSections = remember(availableCategories, transaction.categoryId) {
+        ExpenseCategorySection.fromCategories(availableCategories, transaction.categoryId)
+    }
+    val selectableCategories = if (type == "income") incomeSections.flatMap { it.categories }
+        else expenseSections.flatMap { it.categories }
+    val selectedCategory = selectableCategories.firstOrNull { it.categoryId == categoryId }
     val validAmount = amount.toLongOrNull()?.let { it > 0L } == true
     val red = Color(0xFFEF0012)
     val dateText = remember(dateMillis) {
@@ -83,7 +92,6 @@ fun TransactionEditDialog(
                                 if (type != value) {
                                     type = value
                                     categoryId = null
-                                    categoryOpen = false
                                 }
                             },
                             enabled = !busy,
@@ -109,43 +117,23 @@ fun TransactionEditDialog(
                     Text("Kategori")
                     if (type == "income") {
                         IncomeCategoryPicker(
-                            sections = remember(availableCategories) {
-                                IncomeCategorySection.fromCategories(availableCategories)
-                            },
+                            sections = incomeSections,
                             selectedCategoryId = categoryId,
                             onCategorySelected = { categoryId = it },
                             enabled = !busy
                         )
                     } else {
-                        Box(Modifier.fillMaxWidth()) {
-                            OutlinedButton(
-                                onClick = { categoryOpen = true },
-                                enabled = !busy && availableCategories.isNotEmpty(),
-                                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text(selectedCategory?.let { "${it.emoji} ${it.categoryName}" } ?: "Pilih kategori")
-                            }
-                            DropdownMenu(
-                                expanded = categoryOpen && !busy,
-                                onDismissRequest = { categoryOpen = false },
-                                modifier = Modifier.heightIn(max = 280.dp)
-                            ) {
-                                availableCategories.forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text("${category.emoji} ${category.categoryName}") },
-                                        onClick = {
-                                            categoryId = category.categoryId
-                                            categoryOpen = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                        ExpenseCategoryPicker(
+                            sections = expenseSections,
+                            selectedCategoryId = categoryId,
+                            onCategorySelected = { categoryId = it },
+                            enabled = !busy
+                        )
                     }
-                    if (availableCategories.isEmpty()) {
+                    if (selectableCategories.isEmpty()) {
                         Text("Belum ada kategori untuk jenis transaksi ini.", color = red, fontSize = 12.sp)
                     } else if (submitted && selectedCategory == null) {
-                        Text("Pilih kategori yang sesuai dengan jenis transaksi.", color = red, fontSize = 12.sp)
+                        Text("Pilih kelompok dan subkategori yang sesuai sebelum menyimpan.", color = red, fontSize = 12.sp)
                     }
                 }
                 OutlinedTextField(
@@ -183,7 +171,7 @@ fun TransactionEditDialog(
                         onSave(categoryId, type, amount, dateMillis, note)
                     }
                 },
-                enabled = !busy && availableCategories.isNotEmpty()
+                enabled = !busy && selectableCategories.isNotEmpty()
             ) { Text(if (manageState.isWorking) "Menyimpan..." else "Simpan", color = red) }
         },
         dismissButton = {
