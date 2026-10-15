@@ -1,5 +1,7 @@
 package com.fadhil.financereceipt.ui.home
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -25,8 +28,11 @@ import com.fadhil.financereceipt.utils.FinancialSummaryCalculator.Summary
 import com.fadhil.financereceipt.utils.FinancialSummaryCalculator
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
 private val AnalysisInk = Color(0xFF172B46)
 private val AnalysisMuted = Color(0xFF53657B)
@@ -92,28 +98,45 @@ private fun MonthlySummaryContent(summary: Summary) {
         color = AnalysisMuted, fontSize = 12.sp)
 
     HorizontalDivider()
-    Text("Komposisi pengeluaran", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-    Text("Persentase diagram = nominal kelompok ÷ total pengeluaran bulan ini × 100%.",
+    Text("Penggunaan pemasukan bulanan", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    Text("Persentase di dalam diagram dihitung dari total pemasukan bulan terpilih. Angka 50/30/20 tetap menjadi batas atau target.",
         color = AnalysisMuted, fontSize = 12.sp)
-    val visible = summary.groups.filter { it.group != Group.UNGROUPED || it.amount.signum() > 0 }
+
+    // Satu sumber data untuk warna, potongan diagram, dan legenda di luar.
+    val slices = summary.groups.filter { it.group != Group.UNGROUPED }.map { item ->
+        IncomePieSlice(summaryGroupLabel(item.group), item.amount, groupColor(item.group))
+    } + IncomePieSlice("Saldo bulan", summary.balance, Color(0xFF7C3AED))
+
+    // Saldo negatif dan data tanpa kategori tidak boleh digambar sebagai
+    // empat bagian yang seolah-olah berjumlah 100% dari pemasukan.
+    val chartMessage: String? = when {
+        summary.totalIncome.signum() <= 0 ->
+            "Belum ada pemasukan. Persentase diagram belum dapat dihitung."
+        summary.balance.signum() < 0 ->
+            "Bulan ini defisit ${analysisRupiah(summary.balance.abs())}. Diagram tidak ditampilkan karena pengeluaran melebihi pemasukan."
+        summary.hasUngroupedExpenses ->
+            "Lengkapi kategori pengeluaran lama agar diagram empat bagian dapat ditampilkan dengan benar."
+        else -> null
+    }
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        ExpensePieChart(visible, summary.totalExpense)
+        IncomePieChart(slices, summary.totalIncome, chartMessage)
     }
-    if (summary.totalExpense.signum() == 0) {
-        Text("Belum ada pengeluaran untuk ditampilkan dalam diagram.", color = AnalysisMuted)
+    if (chartMessage != null) {
+        Text(chartMessage, color = AnalysisMuted, fontSize = 13.sp)
     }
-    visible.forEach { item ->
+    slices.forEach { item ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top) {
-            Box(Modifier.padding(top = 4.dp).size(12.dp).background(groupColor(item.group), CircleShape))
+            Box(Modifier.padding(top = 4.dp).size(12.dp).background(item.color, CircleShape))
             Column(Modifier.weight(1f)) {
-                Text(summaryGroupLabel(item.group), color = AnalysisInk, fontWeight = FontWeight.SemiBold)
-                Text("${analysisRupiah(item.amount)} (${percentageText(item.expensePercentage)})",
-                    color = AnalysisInk)
+                Text(item.label, color = AnalysisInk, fontWeight = FontWeight.SemiBold)
+                // Legenda hanya nama dan nominal. Persentase ada di dalam piechart.
+                Text(analysisRupiah(item.amount), color = AnalysisInk)
             }
         }
     }
-    Text("Persentase dibulatkan hingga dua desimal.", color = AnalysisMuted, fontSize = 12.sp)
+    Text("Persentase dibulatkan hingga dua desimal. Bagian bernilai nol tidak membentuk potongan diagram.",
+        color = AnalysisMuted, fontSize = 12.sp)
 
     HorizontalDivider()
     Text("Indikator 50/30/20", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -141,28 +164,88 @@ private fun MonthlyAmount(label: String, amount: BigInteger, color: Color) {
     }
 }
 
+private data class IncomePieSlice(
+    val label: String,
+    val amount: BigInteger,
+    val color: Color
+)
+
+// Jangan memakai persen tampilan yang sudah dibulatkan untuk menentukan sudut.
+private fun incomePieFraction(amount: BigInteger, totalIncome: BigInteger): Float =
+    if (totalIncome.signum() <= 0) 0f else BigDecimal(amount)
+        .divide(BigDecimal(totalIncome), 12, RoundingMode.HALF_UP).toFloat()
+
+private fun incomePiePercentage(amount: BigInteger, totalIncome: BigInteger): String =
+    if (totalIncome.signum() <= 0) "—" else percentageText(
+        BigDecimal(amount.multiply(BigInteger.valueOf(100)))
+            .divide(BigDecimal(totalIncome), 2, RoundingMode.HALF_UP)
+    )
+
 @Composable
-private fun ExpensePieChart(groups: List<GroupSummary>, totalExpense: BigInteger) {
-    val description = if (totalExpense.signum() == 0) "Diagram pengeluaran kosong" else
-        "Diagram komposisi pengeluaran. " + groups.joinToString(". ") {
-            "${summaryGroupLabel(it.group)}: ${analysisRupiah(it.amount)}, ${percentageText(it.expensePercentage)}"
-        }
-    val nonZero = groups.filter { it.amount.signum() > 0 }
-    Canvas(Modifier.widthIn(max = 240.dp).fillMaxWidth().aspectRatio(1f)
+private fun IncomePieChart(
+    slices: List<IncomePieSlice>,
+    totalIncome: BigInteger,
+    unavailableMessage: String?
+) {
+    val description = unavailableMessage ?: (
+            "Diagram penggunaan pemasukan bulanan. " + slices.joinToString(". ") {
+                "${it.label}: ${analysisRupiah(it.amount)}, ${incomePiePercentage(it.amount, totalIncome)}"
+            }
+            )
+    val nonZero = slices.filter { it.amount.signum() > 0 }
+    Canvas(Modifier.widthIn(max = 300.dp).fillMaxWidth().aspectRatio(1f)
         .semantics { contentDescription = description }) {
-        if (totalExpense.signum() == 0) {
+        if (unavailableMessage != null || totalIncome.signum() <= 0 || nonZero.isEmpty()) {
             drawCircle(Color(0xFFE8EDF3))
         } else {
+            // Catat posisi teks, lalu gambar semua teks setelah semua potongan.
+            val labels = mutableListOf<Triple<String, Float, Float>>()
             var startAngle = -90f
             var drawn = 0f
             nonZero.forEachIndexed { index, item ->
                 // Bagian terakhir mengisi sisa akibat pembulatan Float.
                 val sweep = if (index == nonZero.lastIndex) (360f - drawn).coerceAtLeast(0f)
-                    else (item.expenseFraction * 360f).coerceIn(0f, (360f - drawn).coerceAtLeast(0f))
-                drawArc(color = groupColor(item.group), startAngle = startAngle,
+                else (incomePieFraction(item.amount, totalIncome) * 360f)
+                    .coerceIn(0f, (360f - drawn).coerceAtLeast(0f))
+                drawArc(color = item.color, startAngle = startAngle,
                     sweepAngle = sweep, useCenter = true)
+                labels.add(Triple(incomePiePercentage(item.amount, totalIncome), startAngle + sweep / 2f, sweep))
                 startAngle += sweep
                 drawn += sweep
+            }
+
+            val radius = size.minDimension / 2f
+            val labelRadius = radius * 0.64f
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                setShadowLayer(1.dp.toPx(), 0f, 1.dp.toPx(), android.graphics.Color.DKGRAY)
+            }
+            labels.forEach { (text, middleAngle, sweep) ->
+                if (sweep > 0f) {
+                    val radians = Math.toRadians(middleAngle.toDouble())
+                    // Satu bagian 100%: angka tepat di tengah lingkaran.
+                    val distance = if (nonZero.size == 1) 0f else labelRadius
+                    val x = center.x + cos(radians).toFloat() * distance
+                    val y = center.y + sin(radians).toFloat() * distance
+                    paint.textSize = 13.sp.toPx()
+
+                    // Perkecil teks pada potongan sempit agar tetap di dalamnya.
+                    // Pada persentase sangat kecil, teks juga akan sangat kecil;
+                    // angka lengkap tetap tersedia di indikator dan aksesibilitas.
+                    if (nonZero.size > 1) {
+                        val halfAngle = Math.toRadians((sweep / 2f).coerceAtMost(90f).toDouble())
+                        val available = (2f * labelRadius * sin(halfAngle).toFloat() * 0.82f)
+                            .coerceAtLeast(1f)
+                        val metrics = paint.fontMetrics
+                        val diagonal = kotlin.math.hypot(paint.measureText(text), metrics.descent - metrics.ascent)
+                        if (diagonal > available) paint.textSize *= available / diagonal
+                    }
+                    // drawText memakai baseline; koreksi agar teks terpusat vertikal.
+                    val baseline = y - (paint.ascent() + paint.descent()) / 2f
+                    drawContext.canvas.nativeCanvas.drawText(text, x, baseline, paint)
+                }
             }
         }
     }
@@ -210,22 +293,22 @@ private fun groupColor(group: Group): Color = when (group) {
 
 private fun analysisRupiah(amount: BigInteger): String =
     (if (amount.signum() < 0) "−Rp " else "Rp ") +
-        NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID")).format(amount.abs())
+            NumberFormat.getIntegerInstance(Locale.forLanguageTag("id-ID")).format(amount.abs())
 
 private fun percentageText(value: BigDecimal?): String = value?.let {
     it.stripTrailingZeros().toPlainString().replace('.', ',') + "%"
 } ?: "—"
 
 /** Data contoh hanya untuk Android Studio Preview, tidak dimasukkan ke database. */
-@Preview(name = "Analisis bulanan 50 30 20", showBackground = true, widthDp = 360, heightDp = 1000)
+@Preview(name = "Analisis bulanan dengan saldo", showBackground = true, widthDp = 360, heightDp = 1000)
 @Composable
 private fun MonthlyFinanceSummaryPreview() {
     val month = homePeriod(System.currentTimeMillis(), "Bulanan")
     val entries = listOf(
-        FinancialSummaryCalculator.Entry(month.start, "income", 10000000, null),
-        FinancialSummaryCalculator.Entry(month.start, "expense", 5000000, "NEEDS"),
-        FinancialSummaryCalculator.Entry(month.start, "expense", 3000000, "WANTS"),
-        FinancialSummaryCalculator.Entry(month.start, "expense", 2000000, "SAVINGS")
+        FinancialSummaryCalculator.Entry(month.start, "income", 1300000, null),
+        FinancialSummaryCalculator.Entry(month.start, "expense", 270000, "NEEDS"),
+        FinancialSummaryCalculator.Entry(month.start, "expense", 110000, "WANTS"),
+        FinancialSummaryCalculator.Entry(month.start, "expense", 200000, "SAVINGS")
     )
     val state = HomeUiState(
         isLoading = false, analysisMonth = month,
