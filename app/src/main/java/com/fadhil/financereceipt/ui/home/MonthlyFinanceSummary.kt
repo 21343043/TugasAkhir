@@ -67,7 +67,7 @@ fun MonthlyFinanceSummary(
                 }
             }
             TextButton(onClick = onCurrentMonth, enabled = !state.isLoading) { Text("Bulan ini") }
-            Text("Gunakan pemilih bulan di atas untuk analisis ini. Filter riwayat di Beranda berlaku terpisah.",
+            Text("Gunakan pemilih bulan di atas untuk analisis ini.",
                 color = AnalysisMuted, fontSize = 12.sp)
             val summary = state.financialSummary
             when {
@@ -98,8 +98,8 @@ private fun MonthlySummaryContent(summary: Summary) {
         color = AnalysisMuted, fontSize = 12.sp)
 
     HorizontalDivider()
-    Text("Penggunaan pemasukan bulanan", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-    Text("Persentase di dalam diagram dihitung dari total pemasukan bulan terpilih. Angka 50/30/20 tetap menjadi batas atau target.",
+    Text("Diagram Pengeluaran bulanan", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    Text("Persentase di dalam diagram dihitung dari total pemasukan bulan terpilih.",
         color = AnalysisMuted, fontSize = 12.sp)
 
     // Satu sumber data untuk warna, potongan diagram, dan legenda di luar.
@@ -139,8 +139,8 @@ private fun MonthlySummaryContent(summary: Summary) {
         color = AnalysisMuted, fontSize = 12.sp)
 
     HorizontalDivider()
-    Text("Indikator 50/30/20", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-    Text("Dasar indikator: pemasukan tercatat bulan ini. Gunakan pemasukan bersih yang diterima.",
+    Text("Target Pengeluaran Bulanan", color = AnalysisInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    Text("Dasar indikator: pemasukan tercatat bulan terpilih. Gunakan pemasukan bersih yang diterima.",
         color = AnalysisMuted, fontSize = 12.sp)
     if (summary.totalIncome.signum() == 0) {
         Text("Belum ada pemasukan. Target 50/30/20 belum dapat dinilai.", color = AnalysisMuted)
@@ -188,7 +188,7 @@ private fun IncomePieChart(
     unavailableMessage: String?
 ) {
     val description = unavailableMessage ?: (
-            "Diagram penggunaan pemasukan bulanan. " + slices.joinToString(". ") {
+            "Diagram pengeluaran bulanan. " + slices.joinToString(". ") {
                 "${it.label}: ${analysisRupiah(it.amount)}, ${incomePiePercentage(it.amount, totalIncome)}"
             }
             )
