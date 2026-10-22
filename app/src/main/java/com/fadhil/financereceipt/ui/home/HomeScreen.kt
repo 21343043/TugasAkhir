@@ -88,10 +88,10 @@ private fun HomeContent(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    HeaderButton("☰", "Menu") { message = "Menu tambahan belum tersedia pada tahap ini." }
+                    HeaderButton("≡", "Menu") { message = "Menu tambahan belum tersedia pada tahap ini." }
                     Spacer(Modifier.weight(1f))
                     HeaderButton("↓", "Ekspor") { message = "Ekspor belum tersedia pada tahap ini." }
-                    HeaderButton("≡", "Filter") { message = "Gunakan tab periode dan tombol panah untuk memilih rentang tanggal. Filter jenis transaksi tersedia di Riwayat." }
+                    HeaderButton("ⓘ", "Informasi") { message = "Gunakan tab periode dan tombol panah untuk memilih rentang tanggal. Filter jenis transaksi tersedia di Riwayat." }
                 }
                 Row(
                     Modifier.fillMaxWidth(),
