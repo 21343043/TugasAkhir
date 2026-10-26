@@ -1,4 +1,4 @@
-package com.fadhil.financereceipt.receipt
+package com.fadhil.financereceipt.data.ocr
 
 import android.content.Context
 import android.net.Uri

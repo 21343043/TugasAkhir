@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.fadhil.financereceipt.receipt.ReceiptImageStore
+import com.fadhil.financereceipt.data.local.storage.ReceiptImageStore
 
 data class HistoryUiState(
     val isLoading: Boolean = true,

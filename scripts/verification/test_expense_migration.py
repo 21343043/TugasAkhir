@@ -1,5 +1,5 @@
 """Execute actual MIGRATION_6_7 SQL with SQLite, foreign keys enabled.
-Run from project root: python3 tools/test_expense_migration.py
+Run from project root: python3 scripts/verification/test_expense_migration.py
 Room/Compose tests still require Android. Seed helper models repository behavior.
 """
 import json

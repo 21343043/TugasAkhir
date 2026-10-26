@@ -14,8 +14,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fadhil.financereceipt.data.repository.PlanProgressItem
 import com.fadhil.financereceipt.ui.plan.PlanViewModel
-import com.fadhil.financereceipt.utils.BudgetStatus
-import com.fadhil.financereceipt.utils.planRupiah
+import com.fadhil.financereceipt.domain.finance.BudgetStatus
+import com.fadhil.financereceipt.ui.format.planRupiah
 import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Calendar

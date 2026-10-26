@@ -21,11 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator.Group
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator.GroupSummary
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator.Status
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator.Summary
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator.Group
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator.GroupSummary
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator.Status
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator.Summary
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.RoundingMode

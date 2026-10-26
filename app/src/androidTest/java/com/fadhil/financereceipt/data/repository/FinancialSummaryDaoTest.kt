@@ -5,7 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first

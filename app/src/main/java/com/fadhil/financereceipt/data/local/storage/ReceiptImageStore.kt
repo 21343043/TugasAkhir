@@ -1,4 +1,4 @@
-package com.fadhil.financereceipt.receipt
+package com.fadhil.financereceipt.data.local.storage
 
 import android.content.Context
 import android.graphics.Bitmap

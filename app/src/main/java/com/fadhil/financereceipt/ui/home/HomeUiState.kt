@@ -1,7 +1,7 @@
 package com.fadhil.financereceipt.ui.home
 
 import com.fadhil.financereceipt.data.local.entity.TransactionWithCategory
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator
 
 data class HomeUiState(
     val isLoading: Boolean = true,

@@ -1,5 +1,6 @@
 package com.fadhil.financereceipt.receipt
 
+import com.fadhil.financereceipt.data.local.storage.ReceiptImageStore
 import android.graphics.Bitmap
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*

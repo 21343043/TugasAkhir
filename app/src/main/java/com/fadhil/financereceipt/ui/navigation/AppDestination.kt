@@ -1,4 +1,4 @@
-package com.fadhil.financereceipt.navigation
+package com.fadhil.financereceipt.ui.navigation
 
 enum class AppDestination(val route: String) {
     HOME("home"),

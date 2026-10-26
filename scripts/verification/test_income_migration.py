@@ -1,5 +1,5 @@
 """SQLite checks using the migration SQL and seed values from production files.
-Run: python3 tools/test_income_migration.py
+Run: python3 scripts/verification/test_income_migration.py
 Does not replace Room/Compose tests on Android.
 """
 from pathlib import Path
@@ -8,7 +8,7 @@ import re
 import sqlite3
 import unittest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "app/src/main/java/com/fadhil/financereceipt"
 DATABASE = (SRC / "data/local/database/FinanceDatabase.kt").read_text()
 REPOSITORY = (SRC / "data/repository/CategoryRepository.kt").read_text()

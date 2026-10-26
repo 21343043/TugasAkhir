@@ -8,9 +8,9 @@ import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.ReceiptExtractionEntity
 import com.fadhil.financereceipt.data.repository.ReceiptRepository
-import com.fadhil.financereceipt.receipt.ReceiptImageStore
-import com.fadhil.financereceipt.receipt.ReceiptOcr
-import com.fadhil.financereceipt.receipt.ReceiptParser
+import com.fadhil.financereceipt.data.local.storage.ReceiptImageStore
+import com.fadhil.financereceipt.data.ocr.ReceiptOcr
+import com.fadhil.financereceipt.domain.receipt.ReceiptParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -20,20 +20,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-data class ReceiptUiState(
-    val imagePath: String? = null,
-    val busy: Boolean = false,
-    val busyLabel: String = "",
-    val rawText: String = "",
-    val result: ReceiptParser.Result? = null,
-    val storeName: String = "",
-    val dateMillis: Long? = null,
-    val amount: String = "",
-    val categoryId: Long? = null,
-    val note: String = "",
-    val error: String? = null,
-    val savedId: Long? = null
-)
 
 class ReceiptViewModel(application: Application) : AndroidViewModel(application) {
     private val database = FinanceDatabase.getInstance(application)

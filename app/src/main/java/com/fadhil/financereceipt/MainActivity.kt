@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.fadhil.financereceipt.navigation.FinanceNavHost
+import com.fadhil.financereceipt.ui.navigation.FinanceNavHost
 import com.fadhil.financereceipt.ui.theme.TugasAkhirTheme
 
 class MainActivity : ComponentActivity() {

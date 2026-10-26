@@ -4,10 +4,10 @@ import androidx.room.withTransaction
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.local.entity.CategoryEntity
 import com.fadhil.financereceipt.data.local.entity.FinancialPlanEntity
-import com.fadhil.financereceipt.utils.BudgetStatusCalculator
-import com.fadhil.financereceipt.utils.BudgetUsage
-import com.fadhil.financereceipt.utils.planMonthBounds
-import com.fadhil.financereceipt.utils.sumPlanExpenses
+import com.fadhil.financereceipt.domain.finance.BudgetStatusCalculator
+import com.fadhil.financereceipt.domain.finance.BudgetUsage
+import com.fadhil.financereceipt.domain.finance.planMonthBounds
+import com.fadhil.financereceipt.data.local.aggregation.sumPlanExpenses
 import java.math.BigInteger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

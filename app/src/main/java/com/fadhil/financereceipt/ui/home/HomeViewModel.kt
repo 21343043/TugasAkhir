@@ -7,7 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.fadhil.financereceipt.data.local.database.FinanceDatabase
 import com.fadhil.financereceipt.data.repository.TransactionRepository
-import com.fadhil.financereceipt.utils.FinancialSummaryCalculator
+import com.fadhil.financereceipt.domain.finance.FinancialSummaryCalculator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

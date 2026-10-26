@@ -1,4 +1,4 @@
-package com.fadhil.financereceipt.navigation
+package com.fadhil.financereceipt.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
