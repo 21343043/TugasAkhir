@@ -34,8 +34,8 @@ import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 
-private val AnalysisInk = Color(0xFF172B46)
-private val AnalysisMuted = Color(0xFF53657B)
+private val AnalysisInk = Color(0xFF1E293B)
+private val AnalysisMuted = Color(0xFF64748B)
 private val AnalysisGreen = Color(0xFF08734D)
 private val AnalysisRed = Color(0xFFB42318)
 
@@ -105,7 +105,7 @@ private fun MonthlySummaryContent(summary: Summary) {
     // Satu sumber data untuk warna, potongan diagram, dan legenda di luar.
     val slices = summary.groups.filter { it.group != Group.UNGROUPED }.map { item ->
         IncomePieSlice(summaryGroupLabel(item.group), item.amount, groupColor(item.group))
-    } + IncomePieSlice("Saldo bulan", summary.balance, Color(0xFF7C3AED))
+    } + IncomePieSlice("Saldo bulan", summary.balance, Color(0xFF8B5CF6))
 
     // Saldo negatif dan data tanpa kategori tidak boleh digambar sebagai
     // empat bagian yang seolah-olah berjumlah 100% dari pemasukan.
@@ -286,8 +286,8 @@ private fun summaryGroupLabel(group: Group): String =
 
 private fun groupColor(group: Group): Color = when (group) {
     Group.NEEDS -> Color(0xFF2563EB)
-    Group.WANTS -> Color(0xFFE58A17)
-    Group.SAVINGS -> Color(0xFF12906C)
+    Group.WANTS -> Color(0xFFF97316)
+    Group.SAVINGS -> Color(0xFF059669)
     Group.UNGROUPED -> Color(0xFF64748B)
 }
 
