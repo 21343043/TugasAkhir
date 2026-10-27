@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -47,7 +48,8 @@ fun FinanceNavHost() {
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             if (currentRoute != AppDestination.ADD_TRANSACTION.route && currentRoute != AppDestination.SCAN_RECEIPT.route) {
-                NavigationBar {
+                NavigationBar(containerColor = Color(0xFFE8EFF6))
+                {
                     bottomNavigationItems.forEach { item ->
                         NavigationBarItem(
                             selected = currentRoute == item.destination.route,
